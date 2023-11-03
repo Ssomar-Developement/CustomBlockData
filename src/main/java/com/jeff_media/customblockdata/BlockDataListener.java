@@ -191,7 +191,7 @@ final class BlockDataListener implements Listener {
                 map.put(destinationBlock, cbd);
 
                 /* Check if the block above is not impacted */
-                Block above = destinationBlock.getRelative(BlockFace.UP);
+                Block above = block.getRelative(BlockFace.UP);
                 if(above.getPistonMoveReaction().equals(PistonMoveReaction.BREAK)){
                     CustomBlockDataRemoveEvent removeEvent = new CustomBlockDataRemoveEvent(plugin, above, bukkitEvent);
                     Bukkit.getPluginManager().callEvent(removeEvent);
