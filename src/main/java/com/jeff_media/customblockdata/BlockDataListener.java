@@ -41,8 +41,8 @@ import org.bukkit.event.world.StructureGrowEvent;
 import org.bukkit.plugin.Plugin;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 final class BlockDataListener implements Listener {
 
@@ -168,7 +168,9 @@ final class BlockDataListener implements Listener {
         Map<Block, CustomBlockData> map = new LinkedHashMap<>();
         BlockFace direction = bukkitEvent.getDirection();
 
-        blocks.stream().filter(customDataPredicate).takeWhile(block -> !block.getPistonMoveReaction().equals(PistonMoveReaction.BREAK)).forEach(block -> {
+        AtomicBoolean moveStopped = new AtomicBoolean(false);
+
+        blocks.stream().filter(customDataPredicate).takeWhile(block -> !moveStopped.get()).forEach(block -> {
             CustomBlockData cbd = new CustomBlockData(block, plugin);
             if(cbd.isEmpty() || cbd.isProtected()) return;
 
@@ -176,6 +178,7 @@ final class BlockDataListener implements Listener {
                 CustomBlockDataRemoveEvent removeEvent = new CustomBlockDataRemoveEvent(plugin, block, bukkitEvent);
                 Bukkit.getPluginManager().callEvent(removeEvent);
                 if (removeEvent.isCancelled()) bukkitEvent.setCancelled(true);
+                moveStopped.set(true);
             }
             else{
                 Block destinationBlock = block.getRelative(direction);
