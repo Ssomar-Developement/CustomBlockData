@@ -175,9 +175,7 @@ final class BlockDataListener implements Listener {
             if(cbd.isEmpty() || cbd.isProtected()) return;
 
             if(block.getPistonMoveReaction().equals(PistonMoveReaction.BREAK)){
-                CustomBlockDataRemoveEvent removeEvent = new CustomBlockDataRemoveEvent(plugin, block, bukkitEvent);
-                Bukkit.getPluginManager().callEvent(removeEvent);
-                if (removeEvent.isCancelled()) bukkitEvent.setCancelled(true);
+                callAndRemove(block, bukkitEvent);
                 moveStopped.set(true);
             }
             else{
@@ -193,9 +191,7 @@ final class BlockDataListener implements Listener {
                 /* Check if the block above is not impacted */
                 Block above = block.getRelative(BlockFace.UP);
                 if(above.getPistonMoveReaction().equals(PistonMoveReaction.BREAK)){
-                    CustomBlockDataRemoveEvent removeEvent = new CustomBlockDataRemoveEvent(plugin, above, bukkitEvent);
-                    Bukkit.getPluginManager().callEvent(removeEvent);
-                    if (removeEvent.isCancelled()) bukkitEvent.setCancelled(true);
+                    callAndRemove(above, bukkitEvent);
                 }
             }
         });
