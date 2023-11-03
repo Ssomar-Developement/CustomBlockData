@@ -29,6 +29,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
+import org.bukkit.block.PistonMoveReaction;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -41,6 +42,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 final class BlockDataListener implements Listener {
 
@@ -165,14 +167,34 @@ final class BlockDataListener implements Listener {
     private void onPiston(List<Block> blocks, BlockPistonEvent bukkitEvent) {
         Map<Block, CustomBlockData> map = new LinkedHashMap<>();
         BlockFace direction = bukkitEvent.getDirection();
-        blocks.stream().filter(customDataPredicate).forEach(block -> {
+
+        blocks.stream().filter(customDataPredicate).takeWhile(block -> !block.getPistonMoveReaction().equals(PistonMoveReaction.BREAK)).forEach(block -> {
             CustomBlockData cbd = new CustomBlockData(block, plugin);
             if(cbd.isEmpty() || cbd.isProtected()) return;
-            Block destinationBlock = block.getRelative(direction);
-            CustomBlockDataMoveEvent moveEvent = new CustomBlockDataMoveEvent(plugin, block, destinationBlock, bukkitEvent);
-            Bukkit.getPluginManager().callEvent(moveEvent);
-            if (moveEvent.isCancelled()) return;
-            map.put(destinationBlock, cbd);
+
+            if(block.getPistonMoveReaction().equals(PistonMoveReaction.BREAK)){
+                CustomBlockDataRemoveEvent removeEvent = new CustomBlockDataRemoveEvent(plugin, block, bukkitEvent);
+                Bukkit.getPluginManager().callEvent(removeEvent);
+                if (removeEvent.isCancelled()) bukkitEvent.setCancelled(true);
+            }
+            else{
+                Block destinationBlock = block.getRelative(direction);
+                CustomBlockDataMoveEvent moveEvent = new CustomBlockDataMoveEvent(plugin, block, destinationBlock, bukkitEvent);
+                Bukkit.getPluginManager().callEvent(moveEvent);
+                if (moveEvent.isCancelled()) {
+                    bukkitEvent.setCancelled(true);
+                    return;
+                }
+                map.put(destinationBlock, cbd);
+
+                /* Check if the block above is not impacted */
+                Block above = destinationBlock.getRelative(BlockFace.UP);
+                if(above.getPistonMoveReaction().equals(PistonMoveReaction.BREAK)){
+                    CustomBlockDataRemoveEvent removeEvent = new CustomBlockDataRemoveEvent(plugin, above, bukkitEvent);
+                    Bukkit.getPluginManager().callEvent(removeEvent);
+                    if (removeEvent.isCancelled()) bukkitEvent.setCancelled(true);
+                }
+            }
         });
         Utils.reverse(map).forEach((block, cbd) -> {
             cbd.copyTo(block, plugin);
